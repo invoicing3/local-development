@@ -1,0 +1,37 @@
+version: "3.4"
+networks:
+  public:
+  catalog:
+  iam: 
+  invoicing:
+
+services:
+  api-gateway: 
+    # image: gcr.io/invoicing3/api-gateway:dev
+    build: 
+      context: ./../api-gateway
+      dockerfile: ./Dockerfile
+    volumes:
+      - "./../api-gateway:/app"
+    networks:
+      - public
+    ports: 
+      - 3000:3000
+    environment:
+      CATALOG_MICROSERVICE_HOST: catalog
+  catalog: 
+    build: 
+      context: ./../catalog
+      dockerfile: ./Dockerfile
+    networks:
+      - public
+      - catalog
+    volumes:
+      - "./../catalog:/app"
+  catalog-db: 
+    image: mongo:latest
+    networks: 
+      - catalog
+    environment: 
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
