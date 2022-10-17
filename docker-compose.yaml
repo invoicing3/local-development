@@ -6,10 +6,19 @@ networks:
   invoicing:
   backend: 
 volumes:
-  message-broker: 
+   kafka:
+   zookeeper_data:
 services:
+  iam: 
+    build: 
+      context: ./../iam
+      dockerfile: ./Dockerfile
+    volumes:
+      - "./../iam:/app"
+    networks:
+      - public
+      - iam
   api-gateway: 
-    # image: gcr.io/invoicing3/api-gateway:dev
     build: 
       context: ./../api-gateway
       dockerfile: ./Dockerfile
@@ -37,31 +46,38 @@ services:
     environment: 
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
-  kafdrop:
-    image: obsidiandynamics/kafdrop
-    ports:
-      - "9000:9000"
+  kafka:
+    image: bitnami/kafka:latest
+    networks:
+      - backend
+    volumes:
+      - kafka:/bitnami/kafka
     environment:
-      KAFKA_BROKERCONNECT: "kafka:29092"
-      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
-      - "kafka"
+      - zookeeper
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    networks:
+      - backend
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    restart: always
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=localhost:2181
     networks:
       - backend
       - public
-  kafka:
-    image: obsidiandynamics/kafka
-    ports:
-      - "2181:2181"
-      - "9092:9092"
-    environment:
-      KAFKA_LISTENERS: "INTERNAL://:29092,EXTERNAL://:9092"
-      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:29092,EXTERNAL://localhost:9092"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
-      KAFKA_ZOOKEEPER_SESSION_TIMEOUT: "6000"
-      KAFKA_RESTART_ATTEMPTS: "10"
-      KAFKA_RESTART_DELAY: "5"
-      ZOOKEEPER_AUTOPURGE_PURGE_INTERVAL: "0"
-    networks:
-      - backend
+
