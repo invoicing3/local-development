@@ -87,16 +87,12 @@ services:
           context: ./../invoicing/vendor/laravel/sail/runtimes/8.1
           dockerfile: Dockerfile
           args:
-              WWWGROUP: '1001'
-              WWWUSER: '1001'
+            WWWGROUP: '1001'
       image: invoicing-8.1/app
       extra_hosts:
           - 'host.docker.internal:host-gateway'
-      ports:
-          - '${APP_PORT:-80}:80'
-          - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
       environment:
-          WWWUSER: '${WWWUSER}'
+          WWWUSER: '1001'
           LARAVEL_SAIL: 1
       volumes:
           - '../invoicing:/var/www/html'
